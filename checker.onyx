@@ -1,27 +1,28 @@
 use core {println}
 
 CHECKERBOARD_SIZE :: 20;
-CHECKERBOARD_BUFFER_SIZE :: CHECKERBOARD_SIZE * CHECKERBOARD_SIZE * 4;
 
+#export "CHECKERBOARD_BUFFER_SIZE" CHECKERBOARD_BUFFER_SIZE
+CHECKERBOARD_BUFFER_SIZE: i32 = CHECKERBOARD_SIZE * CHECKERBOARD_SIZE * 4;
+
+#export "CHECKERBOARD_BUFFER_POINTER" CHECKERBOARD_BUFFER_POINTER
 CHECKERBOARD_BUFFER_POINTER: [CHECKERBOARD_BUFFER_SIZE] i32;
 
-main :: () {
-    generateCheckerBoard(0, 0, 0, 0, 0, 0);
-}
-
+#export "generateCheckerBoard" generateCheckerBoard
 generateCheckerBoard :: (
     darkValueRed: i32,
     darkValueGreen: i32,
     darkValueBlue: i32,
     lightValueRed: i32,
     lightValueGreen: i32,
-    lightValueBlue: i32) {
+    lightValueBlue: i32) -> i32 {
 
     // Since Linear memory is a 1 dimensional array, but we want a grid
     // we will be doing 2d to 1d mapping
     // https://softwareengineering.stackexchange.com/questions/212808/treating-a-1d-data-structure-as-2d-grid
     for x: 0 .. CHECKERBOARD_SIZE {
         for y: 0 .. CHECKERBOARD_SIZE {
+
             // Set our default case to be dark squares
             isDarkSquare := true;
 
@@ -60,4 +61,9 @@ generateCheckerBoard :: (
             CHECKERBOARD_BUFFER_POINTER[squareRgbaIndex + 3] = 255;
         }
     }
+
+    return 123;
+}
+
+main :: () {
 }

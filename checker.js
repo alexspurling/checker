@@ -1,12 +1,24 @@
-import { wasmBrowserInstantiate } from "./instantiateWasm.js"
+const importWasmModule = async (wasmModuleUrl) => {
+    let importObject = {
+        host: {
+            print_str: (obj) => console.log(obj),
+            time: () => console.log("time"),
+        }
+    };
+
+    return await WebAssembly.instantiateStreaming(
+        fetch(wasmModuleUrl),
+        importObject
+    );
+}
 
 const runWasm = async () => {
 
     console.log("Loading wasm module");
     // Instantiate our wasm module
-    const wasmModule = await wasmBrowserInstantiate("./checker.wasm");
+    const wasmModule = await importWasmModule("./checker.wasm");
 
-    console.log("Loaded wasm module");
+    console.log("Loaded wasm module", wasmModule);
 
     // Get our exports object, with all of our exported Wasm Properties
     const exports = wasmModule.instance.exports;
@@ -42,7 +54,7 @@ const runWasm = async () => {
         const checkerBoardSize = 20;
 
         // Generate a new checkboard in wasm
-        exports.generateCheckerBoard(
+        const sample = exports.generateCheckerBoard(
             getDarkValue(),
             getDarkValue(),
             getDarkValue(),
@@ -50,6 +62,8 @@ const runWasm = async () => {
             getLightValue(),
             getLightValue()
         );
+
+        console.log("Sample", sample);
 
         // Pull out the RGBA values from Wasm memory, the we wrote to in wasm,
         // starting at the checkerboard pointer (memory array index)
