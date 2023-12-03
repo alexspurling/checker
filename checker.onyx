@@ -1,0 +1,63 @@
+use core {println}
+
+CHECKERBOARD_SIZE :: 20;
+CHECKERBOARD_BUFFER_SIZE :: CHECKERBOARD_SIZE * CHECKERBOARD_SIZE * 4;
+
+CHECKERBOARD_BUFFER_POINTER: [CHECKERBOARD_BUFFER_SIZE] i32;
+
+main :: () {
+    generateCheckerBoard(0, 0, 0, 0, 0, 0);
+}
+
+generateCheckerBoard :: (
+    darkValueRed: i32,
+    darkValueGreen: i32,
+    darkValueBlue: i32,
+    lightValueRed: i32,
+    lightValueGreen: i32,
+    lightValueBlue: i32) {
+
+    // Since Linear memory is a 1 dimensional array, but we want a grid
+    // we will be doing 2d to 1d mapping
+    // https://softwareengineering.stackexchange.com/questions/212808/treating-a-1d-data-structure-as-2d-grid
+    for x: 0 .. CHECKERBOARD_SIZE {
+        for y: 0 .. CHECKERBOARD_SIZE {
+            // Set our default case to be dark squares
+            isDarkSquare := true;
+
+            // We should change our default case if
+            // We are on an odd y
+            if y % 2 == 0 {
+                isDarkSquare = false;
+            }
+
+            // Lastly, alternate on our x value
+            if x % 2 == 0 {
+                isDarkSquare = !isDarkSquare;
+            }
+
+            // Now that we determined if we are dark or light,
+            // Let's set our square value
+            squareValueRed := darkValueRed;
+            squareValueGreen := darkValueGreen;
+            squareValueBlue := darkValueBlue;
+            
+            if !isDarkSquare {
+                squareValueRed = lightValueRed;
+                squareValueGreen = lightValueGreen;
+                squareValueBlue = lightValueBlue;
+            }
+
+            // Let's calculate our index, using our 2d -> 1d mapping.
+            // And then multiple by 4, for each pixel property (r,g,b,a).
+            squareNumber := y * CHECKERBOARD_SIZE + x;
+            squareRgbaIndex := squareNumber * 4;
+
+            // Finally store the values.
+            CHECKERBOARD_BUFFER_POINTER[squareRgbaIndex + 0] = squareValueRed;
+            CHECKERBOARD_BUFFER_POINTER[squareRgbaIndex + 1] = squareValueGreen;
+            CHECKERBOARD_BUFFER_POINTER[squareRgbaIndex + 2] = squareValueBlue;
+            CHECKERBOARD_BUFFER_POINTER[squareRgbaIndex + 3] = 255;
+        }
+    }
+}
