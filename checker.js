@@ -1,8 +1,8 @@
 const importWasmModule = async (wasmModuleUrl) => {
     let importObject = {
         host: {
-            print_str: (obj) => console.log(obj),
-            time: () => console.log("time"),
+            print_str: console.log,
+            time: Date.now,
         }
     };
 
@@ -51,10 +51,9 @@ const runWasm = async () => {
     };
 
     const drawCheckerBoard = () => {
-        const checkerBoardSize = 20;
 
         // Generate a new checkboard in wasm
-        const sample = exports.generateCheckerBoard(
+        const result = exports.generateCheckerBoard(
             getDarkValue(),
             getDarkValue(),
             getDarkValue(),
@@ -63,13 +62,18 @@ const runWasm = async () => {
             getLightValue()
         );
 
-        console.log("Sample", sample);
+        const bufferPointer = exports.getCheckerboardBuffer();
+        const bufferSize = exports.getCheckerboardBufferSize()
+
+        console.log("Result", result);
+        console.log("buffer", bufferPointer);
+        console.log("size", bufferSize);
 
         // Pull out the RGBA values from Wasm memory, the we wrote to in wasm,
         // starting at the checkerboard pointer (memory array index)
         const imageDataArray = wasmByteMemoryArray.slice(
-            exports.CHECKERBOARD_BUFFER_POINTER.valueOf(),
-            exports.CHECKERBOARD_BUFFER_SIZE.valueOf()
+            bufferPointer,
+            bufferPointer + bufferSize
         );
 
         // Set the values to the canvas image data

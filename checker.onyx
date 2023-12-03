@@ -2,20 +2,30 @@ use core {println}
 
 CHECKERBOARD_SIZE :: 20;
 
-#export "CHECKERBOARD_BUFFER_SIZE" CHECKERBOARD_BUFFER_SIZE
 CHECKERBOARD_BUFFER_SIZE: i32 = CHECKERBOARD_SIZE * CHECKERBOARD_SIZE * 4;
+CHECKERBOARD_BUFFER_POINTER: [CHECKERBOARD_BUFFER_SIZE] u8;
 
-#export "CHECKERBOARD_BUFFER_POINTER" CHECKERBOARD_BUFFER_POINTER
-CHECKERBOARD_BUFFER_POINTER: [CHECKERBOARD_BUFFER_SIZE] i32;
+
+#export "getCheckerboardBufferSize" getCheckerboardBufferSize
+getCheckerboardBufferSize :: () -> i32 {
+    return CHECKERBOARD_BUFFER_SIZE;
+}
+
+#export "getCheckerboardBuffer" getCheckerboardBuffer
+getCheckerboardBuffer :: () -> rawptr {
+    return &CHECKERBOARD_BUFFER_POINTER;
+}
 
 #export "generateCheckerBoard" generateCheckerBoard
 generateCheckerBoard :: (
-    darkValueRed: i32,
-    darkValueGreen: i32,
-    darkValueBlue: i32,
-    lightValueRed: i32,
-    lightValueGreen: i32,
-    lightValueBlue: i32) -> i32 {
+    darkValueRed: u8,
+    darkValueGreen: u8,
+    darkValueBlue: u8,
+    lightValueRed: u8,
+    lightValueGreen: u8,
+    lightValueBlue: u8) -> i32 {
+
+    numDark := 0;
 
     // Since Linear memory is a 1 dimensional array, but we want a grid
     // we will be doing 2d to 1d mapping
@@ -47,6 +57,7 @@ generateCheckerBoard :: (
                 squareValueRed = lightValueRed;
                 squareValueGreen = lightValueGreen;
                 squareValueBlue = lightValueBlue;
+                numDark += 1;
             }
 
             // Let's calculate our index, using our 2d -> 1d mapping.
@@ -62,7 +73,7 @@ generateCheckerBoard :: (
         }
     }
 
-    return 123;
+    return cast(i32) CHECKERBOARD_BUFFER_POINTER[968 + 4];
 }
 
 main :: () {
