@@ -13,3 +13,11 @@ live-server .
 Then navigate to http://localhost:8080
 
 
+To recompile:
+
+Using Onyx 0.19 or higher:
+
+`onyx build checker.onyx -o checker.wasm -r js`
+
+Then run the web server as above.
+
