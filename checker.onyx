@@ -3,7 +3,7 @@ use core {println}
 CHECKERBOARD_SIZE :: 20;
 
 CHECKERBOARD_BUFFER_SIZE: i32 = CHECKERBOARD_SIZE * CHECKERBOARD_SIZE * 4;
-CHECKERBOARD_BUFFER_POINTER: [CHECKERBOARD_BUFFER_SIZE] u8;
+CHECKERBOARD_BUFFER_POINTER: [1600] u8;
 
 
 #export "getCheckerboardBufferSize" getCheckerboardBufferSize
@@ -52,7 +52,7 @@ generateCheckerBoard :: (
             squareValueRed := darkValueRed;
             squareValueGreen := darkValueGreen;
             squareValueBlue := darkValueBlue;
-            
+
             if !isDarkSquare {
                 squareValueRed = lightValueRed;
                 squareValueGreen = lightValueGreen;
