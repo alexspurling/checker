@@ -54,7 +54,6 @@ let bufferSize;
 let wasmByteMemoryArray;
 let imageDataArray;
 let canvasElement;
-let canvasContext;
 let canvasImageData;
 
 
@@ -78,44 +77,12 @@ const loadWasm = async () => {
     memory = exports.memory;
     wasmByteMemoryArray = new Uint8Array(memory.buffer);
 
-    // imageDataArray = wasmByteMemoryArray.slice(
-    //     bufferPointer,
-    //     bufferPointer + bufferSize
-    // );
-
-    // Get our canvas element from our index.html
-    // const canvasElement = document.querySelector("canvas");
-
-    // Set up Context and ImageData on the canvas
-    // canvasContext = canvas.getContext("2d");
-    // canvasImageData = canvasContext.createImageData(
-    //     canvas.width,
-    //     canvas.height
-    // );
-
-    // // Set the values to the canvas image data
-    // canvasImageData.data.set(imageDataArray);
-
-    // // Clear the canvas
-    // canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-
-    // // Place the new generated checkerboard onto the canvas
-    // canvasContext.putImageData(canvasImageData, 0, 0);
+    imageDataArray = wasmByteMemoryArray.slice(
+        bufferPointer,
+        bufferPointer + bufferSize
+    );
 }
 
-// Create a Uint8Array to give us access to Wasm Memory
-// const inputByteArray = stringToByteArray("Hello world");
-// const inputPointer = wasmInstance.exports.__alloc(inputByteArray.length);
-// const wasmMemory = new Uint8Array(wasmModule.instance.exports.memory);
-// wasmMemory.set(inputByteArray, inputPointer);
-
-// function stringToByteArray(str) {
-//     const byteArray = new Uint8Array(str.length);
-//     for (let i = 0; i < str.length; i++) {
-//       byteArray[i] = str.charCodeAt(i);
-//     }
-//     return byteArray;
-// }
 
 onmessage = async (e) => {
     if (e.data.msg == "load") {
@@ -131,6 +98,11 @@ onmessage = async (e) => {
 };
 
 
+let fps = 0;
+let numFrames = 0;
+let lastFpsTime = 0;
+
+
 function render() {
     // Generate a new checkboard in wasm
 
@@ -143,118 +115,43 @@ function render() {
         bufferPointer,
         bufferPointer + bufferSize
     );
-    const sliceTime = Date.now() - startTime;
+
+    // console.log(wasmByteMemoryArray);
 
     // Get our canvas element from our index.html
     // const canvasElement = document.querySelector("canvas");
 
     // Set up Context and ImageData on the canvas
-    const canvasContext = canvas.getContext("2d");
-
-    startTime = Date.now();
-    const canvasImageData = canvasContext.createImageData(
+    const ctx = canvas.getContext("2d");
+    const canvasImageData = ctx.createImageData(
         canvas.width,
         canvas.height
     );
-    const createImageDataTime = Date.now() - startTime;
-
-    startTime = Date.now();
-    // Set the values to the canvas image data
     canvasImageData.data.set(imageDataArray);
-    const setImageDataTime = Date.now() - startTime;
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.putImageData(canvasImageData, 0, 0);
 
-    // Clear the canvas
+    const updateTime = Date.now() - startTime;
 
-    startTime = Date.now();
-    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-    const clearRectTime = Date.now() - startTime;
+    // Render the FPS counter
+    renderFPS(ctx);
 
-    // Place the new generated checkerboard onto the canvas
-
-    startTime = Date.now();
-    canvasContext.putImageData(canvasImageData, 0, 0);
-    const putImageDataTime = Date.now() - startTime;
-
-    console.log("Render time", renderTime, "Slice time", sliceTime, "createImageDataTime", createImageDataTime, "setImageDataTime", setImageDataTime, "clearRectTime", clearRectTime, "putImageDataTime", putImageDataTime);
+    // requestAnimationFrame(render);
+    // console.log("Render time", renderTime, "Slice time", sliceTime, "createImageDataTime", createImageDataTime, "setImageDataTime", setImageDataTime, "clearRectTime", clearRectTime, "putImageDataTime", putImageDataTime);
+    console.log("Render time", renderTime, "Update time", updateTime);
 }
 
-// const runWasm = async () => {
+function renderFPS(ctx) {
+    const curTime = Date.now();
+    if (curTime - lastFpsTime >= 1000) {
+        lastFpsTime = curTime;
+        fps = numFrames;
+        numFrames = 0;
+    }
 
-//     console.log("Loading wasm module");
-//     // Instantiate our wasm module
-//     const wasmModule = await importWasmModule("./checker.wasm");
+    numFrames += 1;
 
-//     console.log("Loaded wasm module", wasmModule);
-
-//     // Get our exports object, with all of our exported Wasm Properties
-//     const exports = wasmModule.instance.exports;
-
-//     // Get our memory object from the exports
-//     const memory = exports.memory;
-
-//     // Create a Uint8Array to give us access to Wasm Memory
-//     const wasmByteMemoryArray = new Uint8Array(memory.buffer);
-
-//     // Get our canvas element from our index.html
-//     const canvasElement = document.querySelector("canvas");
-
-//     // Set up Context and ImageData on the canvas
-//     const canvasContext = canvasElement.getContext("2d");
-//     const canvasImageData = canvasContext.createImageData(
-//         canvasElement.width,
-//         canvasElement.height
-//     );
-
-//     // Clear the canvas
-//     canvasContext.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-//     const getDarkValue = () => {
-//         return Math.floor(Math.random() * 100);
-//     };
-
-//     const getLightValue = () => {
-//         return Math.floor(Math.random() * 127) + 127;
-//     };
-
-//     const drawCheckerBoard = () => {
-
-//         // Generate a new checkboard in wasm
-//         const result = exports.generateCheckerBoard(
-//             getDarkValue(),
-//             getDarkValue(),
-//             getDarkValue(),
-//             getLightValue(),
-//             getLightValue(),
-//             getLightValue()
-//         );
-
-//         const bufferPointer = exports.getCheckerboardBuffer();
-//         const bufferSize = exports.getCheckerboardBufferSize()
-
-//         console.log("Result", result);
-//         console.log("buffer", bufferPointer);
-//         console.log("size", bufferSize);
-
-//         // Pull out the RGBA values from Wasm memory, the we wrote to in wasm,
-//         // starting at the checkerboard pointer (memory array index)
-//         const imageDataArray = wasmByteMemoryArray.slice(
-//             bufferPointer,
-//             bufferPointer + bufferSize
-//         );
-
-//         // Set the values to the canvas image data
-//         canvasImageData.data.set(imageDataArray);
-
-//         // Clear the canvas
-//         canvasContext.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-//         // Place the new generated checkerboard onto the canvas
-//         canvasContext.putImageData(canvasImageData, 0, 0);
-//     };
-
-//     drawCheckerBoard();
-//     setInterval(() => {
-//         drawCheckerBoard();
-//     }, 1000);
-// };
-// runWasm();
+    ctx.font = "20px sans";
+    ctx.fillStyle = "black";
+    ctx.fillText("FPS: " + fps, 20, 40);
+}
