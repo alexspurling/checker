@@ -78,29 +78,29 @@ const loadWasm = async () => {
     memory = exports.memory;
     wasmByteMemoryArray = new Uint8Array(memory.buffer);
 
-    imageDataArray = wasmByteMemoryArray.slice(
-        bufferPointer,
-        bufferPointer + bufferSize
-    );
+    // imageDataArray = wasmByteMemoryArray.slice(
+    //     bufferPointer,
+    //     bufferPointer + bufferSize
+    // );
 
     // Get our canvas element from our index.html
     // const canvasElement = document.querySelector("canvas");
 
     // Set up Context and ImageData on the canvas
-    canvasContext = canvas.getContext("2d");
-    canvasImageData = canvasContext.createImageData(
-        canvas.width,
-        canvas.height
-    );
+    // canvasContext = canvas.getContext("2d");
+    // canvasImageData = canvasContext.createImageData(
+    //     canvas.width,
+    //     canvas.height
+    // );
 
-    // Set the values to the canvas image data
-    canvasImageData.data.set(imageDataArray);
+    // // Set the values to the canvas image data
+    // canvasImageData.data.set(imageDataArray);
 
-    // Clear the canvas
-    canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    // // Clear the canvas
+    // canvasContext.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Place the new generated checkerboard onto the canvas
-    canvasContext.putImageData(canvasImageData, 0, 0);
+    // // Place the new generated checkerboard onto the canvas
+    // canvasContext.putImageData(canvasImageData, 0, 0);
 }
 
 // Create a Uint8Array to give us access to Wasm Memory
@@ -132,9 +132,37 @@ onmessage = async (e) => {
 
 
 function render() {
-    console.log("Rendering");
     // Generate a new checkboard in wasm
     exports.render(BigInt(Date.now()));
+
+    // Set the values to the canvas image data
+    // canvasImageData.data.set(imageDataArray);
+
+    // Clear the canvas
+    // canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Place the new generated checkerboard onto the canvas
+    // canvasContext.putImageData(canvasImageData, 0, 0);
+
+    // canvasContext.fillStyle = 'red';
+
+    // canvasContext.fillRect(0, 0, canvas.width, canvas.height);
+
+
+    const imageDataArray = wasmByteMemoryArray.slice(
+        bufferPointer,
+        bufferPointer + bufferSize
+    );
+
+    // Get our canvas element from our index.html
+    // const canvasElement = document.querySelector("canvas");
+
+    // Set up Context and ImageData on the canvas
+    const canvasContext = canvas.getContext("2d");
+    const canvasImageData = canvasContext.createImageData(
+        canvas.width,
+        canvas.height
+    );
 
     // Set the values to the canvas image data
     canvasImageData.data.set(imageDataArray);
