@@ -133,45 +133,49 @@ onmessage = async (e) => {
 
 function render() {
     // Generate a new checkboard in wasm
+
+    let startTime = Date.now();
     exports.render(BigInt(Date.now()));
+    const renderTime = Date.now() - startTime;
 
-    // Set the values to the canvas image data
-    // canvasImageData.data.set(imageDataArray);
-
-    // Clear the canvas
-    // canvasContext.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Place the new generated checkerboard onto the canvas
-    // canvasContext.putImageData(canvasImageData, 0, 0);
-
-    // canvasContext.fillStyle = 'red';
-
-    // canvasContext.fillRect(0, 0, canvas.width, canvas.height);
-
-
+    startTime = Date.now();
     const imageDataArray = wasmByteMemoryArray.slice(
         bufferPointer,
         bufferPointer + bufferSize
     );
+    const sliceTime = Date.now() - startTime;
 
     // Get our canvas element from our index.html
     // const canvasElement = document.querySelector("canvas");
 
     // Set up Context and ImageData on the canvas
     const canvasContext = canvas.getContext("2d");
+
+    startTime = Date.now();
     const canvasImageData = canvasContext.createImageData(
         canvas.width,
         canvas.height
     );
+    const createImageDataTime = Date.now() - startTime;
 
+    startTime = Date.now();
     // Set the values to the canvas image data
     canvasImageData.data.set(imageDataArray);
+    const setImageDataTime = Date.now() - startTime;
 
     // Clear the canvas
+
+    startTime = Date.now();
     canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    const clearRectTime = Date.now() - startTime;
 
     // Place the new generated checkerboard onto the canvas
+
+    startTime = Date.now();
     canvasContext.putImageData(canvasImageData, 0, 0);
+    const putImageDataTime = Date.now() - startTime;
+
+    console.log("Render time", renderTime, "Slice time", sliceTime, "createImageDataTime", createImageDataTime, "setImageDataTime", setImageDataTime, "clearRectTime", clearRectTime, "putImageDataTime", putImageDataTime);
 }
 
 // const runWasm = async () => {
