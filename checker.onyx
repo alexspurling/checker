@@ -1,4 +1,4 @@
-use core {println}
+use core {println, printf}
 
 CHECKERBOARD_SIZE :: 20;
 
@@ -6,24 +6,26 @@ CHECKERBOARD_BUFFER_SIZE: i32 = CHECKERBOARD_SIZE * CHECKERBOARD_SIZE * 4;
 CHECKERBOARD_BUFFER_POINTER: [1600] u8;
 
 
-#export "getCheckerboardBufferSize" getCheckerboardBufferSize
-getCheckerboardBufferSize :: () -> i32 {
+#export "getBufferSize" getBufferSize
+getBufferSize :: () -> i32 {
     return CHECKERBOARD_BUFFER_SIZE;
 }
 
-#export "getCheckerboardBuffer" getCheckerboardBuffer
-getCheckerboardBuffer :: () -> rawptr {
+#export "getBufferPointer" getBufferPointer
+getBufferPointer :: () -> rawptr {
     return &CHECKERBOARD_BUFFER_POINTER;
 }
 
-#export "generateCheckerBoard" generateCheckerBoard
-generateCheckerBoard :: (
-    darkValueRed: u8,
-    darkValueGreen: u8,
-    darkValueBlue: u8,
-    lightValueRed: u8,
-    lightValueGreen: u8,
-    lightValueBlue: u8) -> i32 {
+#export "render" render
+render :: (time: i64) -> i32 {
+
+    darkValueRed: u8 = cast(u8)(time % 256);
+    darkValueGreen: u8 = cast(u8)(time >> 1 % 256);
+    darkValueBlue: u8 = cast(u8)(time >> 2 % 256);
+
+    lightValueRed: u8 = cast(u8)(time >> 3 % 256);
+    lightValueGreen: u8 = cast(u8)(time >> 4 % 256);
+    lightValueBlue: u8 = cast(u8)(time >> 5 % 256);
 
     numDark := 0;
 
@@ -72,6 +74,8 @@ generateCheckerBoard :: (
             CHECKERBOARD_BUFFER_POINTER[squareRgbaIndex + 3] = 255;
         }
     }
+
+    // printf("Hello, {}\n", 1);
 
     return cast(i32) CHECKERBOARD_BUFFER_POINTER[968 + 4];
 }
