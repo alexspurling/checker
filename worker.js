@@ -123,10 +123,10 @@ function render() {
     const renderTime = Date.now() - startTime;
 
     startTime = Date.now();
-    const imageDataArray = wasmByteMemoryArray.slice(
-        bufferPointer,
-        bufferPointer + bufferSize
-    );
+    // const imageDataArray = wasmByteMemoryArray.slice(
+    //     bufferPointer,
+    //     bufferPointer + bufferSize
+    // );
 
     // console.log(wasmByteMemoryArray);
 
@@ -135,13 +135,13 @@ function render() {
     //     canvas.width,
     //     canvas.height
     // );
-    canvasImageData.data.set(imageDataArray);
+    // canvasImageData.data.set(imageDataArray);
     // ctx.clearRect(0, 0, canvas.width, canvas.height);
     // ctx.putImageData(canvasImageData, 0, 0);
 
-    // for (var i = 0; i < bufferSize; i++) {
-    //     canvasImageData.data[i] = wasmByteMemoryArray[bufferPointer + i];
-    // }
+    for (var i = 0; i < bufferSize; i++) {
+        canvasImageData.data[i] = wasmByteMemoryArray[bufferPointer + i];
+    }
     ctx.putImageData(canvasImageData, 0, 0);
     // console.log(canvasImageData.data);
 
@@ -175,7 +175,7 @@ function renderFPS(ctx, renderTime, updateTime) {
 
     ctx.font = "20px sans";
     ctx.fillStyle = "black";
-    ctx.fillText("Using .slice()", 20, 20);
+    ctx.fillText("Using for loop", 20, 20);
     ctx.fillText("FPS: " + fps, 20, 40);
     ctx.fillText("Render time: " + avgRenderTime.toFixed(2), 20, 60);
     ctx.fillText("Update time: " + avgUpdateTime.toFixed(2), 20, 80);
