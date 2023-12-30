@@ -78,12 +78,18 @@ const loadWasm = async () => {
     memory = exports.memory;
     wasmByteMemoryArray = new Uint8Array(memory.buffer);
 
-    imageDataArray = wasmByteMemoryArray.slice(
-        bufferPointer,
-        bufferPointer + bufferSize
-    );
+    // imageDataArray = wasmByteMemoryArray.slice(
+    //     bufferPointer,
+    //     bufferPointer + bufferSize
+    // );
 
     ctx = canvas.getContext("2d");
+    canvasImageData = ctx.createImageData(
+        canvas.width,
+        canvas.height
+    );
+    // ctx.putImageData(canvasImageData, 0, 0);
+    // canvasImageData.data.set(imageDataArray);
 }
 
 
@@ -102,7 +108,7 @@ onmessage = async (e) => {
 
 
 let fps = 0;
-let numFrames = 0;
+let numFrames = 1;
 let lastFpsTime = 0;
 let avgRenderTime = 0;
 let totalRenderTime = 0;
@@ -124,17 +130,20 @@ function render() {
 
     // console.log(wasmByteMemoryArray);
 
-    // Get our canvas element from our index.html
-    // const canvasElement = document.querySelector("canvas");
-
     // Set up Context and ImageData on the canvas
-    const canvasImageData = ctx.createImageData(
-        canvas.width,
-        canvas.height
-    );
+    // const canvasImageData = ctx.createImageData(
+    //     canvas.width,
+    //     canvas.height
+    // );
     canvasImageData.data.set(imageDataArray);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // ctx.putImageData(canvasImageData, 0, 0);
+
+    // for (var i = 0; i < bufferSize; i++) {
+    //     canvasImageData.data[i] = wasmByteMemoryArray[bufferPointer + i];
+    // }
     ctx.putImageData(canvasImageData, 0, 0);
+    // console.log(canvasImageData.data);
 
     const updateTime = Date.now() - startTime;
 
@@ -156,6 +165,7 @@ function renderFPS(ctx, renderTime, updateTime) {
         numFrames = 0;
         totalRenderTime = 0;
         totalUpdateTime = 0;
+        console.log("FPS:", fps, "Render time:", avgRenderTime, "Update time:", avgUpdateTime);
     } else {
         totalRenderTime += renderTime;
         totalUpdateTime += updateTime;
@@ -165,6 +175,7 @@ function renderFPS(ctx, renderTime, updateTime) {
 
     ctx.font = "20px sans";
     ctx.fillStyle = "black";
+    ctx.fillText("Using .slice()", 20, 20);
     ctx.fillText("FPS: " + fps, 20, 40);
     ctx.fillText("Render time: " + avgRenderTime.toFixed(2), 20, 60);
     ctx.fillText("Update time: " + avgUpdateTime.toFixed(2), 20, 80);
