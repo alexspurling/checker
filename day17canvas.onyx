@@ -1,0 +1,122 @@
+use core {println, printf}
+use core.math
+
+CANVAS_SIZE :: 800;
+CANVAS_BUFFER_SIZE :: CANVAS_SIZE * CANVAS_SIZE * 4; // 4 bytes per pixel
+CANVAS_BUFFER_POINTER: [CANVAS_BUFFER_SIZE] u8;
+
+
+FontSheet :: struct {
+    width: i32;
+    height: i32;
+    charWidth: i32;
+    charHeight: i32;
+    sheetWidth: i32;
+    sheetHeight: i32;
+    image: [] u8;
+}
+
+getIntFromArray :: (arr: [] u8, offset: i32) -> i32 {
+    a: u32 = cast(u32, arr[offset + 3]) << 24;
+    b: u32 = cast(u32, arr[offset + 2]) << 16;
+    c: u32 = cast(u32, arr[offset + 1]) << 8;
+    d: u32 = cast(u32, arr[offset + 0]);
+    return a | b | c | d;
+}
+
+getFontSheet :: () -> FontSheet {
+    fontBmp := #file_contents "monaco16.bmp";
+    imageOffset := cast(u32) fontBmp[0xA];
+    image: [] u8 = fontBmp[imageOffset .. fontBmp.count];
+    
+    width := getIntFromArray(fontBmp, 0x12);
+    height := getIntFromArray(fontBmp, 0x16);
+
+    return FontSheet.{width, height, 10, 17, 32, 3, image};
+}
+
+
+#export "getBufferSize" getBufferSize
+getBufferSize :: () -> i32 {
+    return CANVAS_BUFFER_SIZE;
+}
+
+#export "getBufferPointer" getBufferPointer
+getBufferPointer :: () -> rawptr {
+    return &CANVAS_BUFFER_POINTER;
+}
+
+Colour :: struct {
+    r: u8;
+    g: u8;
+    b: u8;
+    a: u8;
+}
+
+// Font sheet:
+//  !"#$%&'()*+,-./0123456789:;<=>?
+// @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
+// `abcdefghijklmnopqrstuvwxyz{|}~
+
+#export "render" render
+render :: (time: i64) -> i32 {
+
+    foregroundR: u8 = cast(u8)(time % 256);
+    foregroundG: u8 = cast(u8)((time >> 1) % 256);
+    foregroundB: u8 = cast(u8)((time >> 2) % 256);
+
+    backgroundR: u8 = cast(u8)((time >> 3) % 256);
+    backgroundG: u8 = cast(u8)((time >> 4) % 256);
+    backgroundB: u8 = cast(u8)((time >> 5) % 256);
+
+    foreground := Colour.{foregroundR, foregroundG, foregroundB, 255};
+    background := Colour.{backgroundR, backgroundG, backgroundB, 255};
+
+    fontSheet := getFontSheet();
+
+    tileSize := 20;
+
+    for y: 0 .. 9 {
+        for x: 0 .. 9 {
+            posX := 100 + x * 10;
+            posY := 100 + y * 17;
+
+            charToRender := cast(u8) ('A' + x + y);
+            renderChar(fontSheet, charToRender, posX, posY);
+        }
+    }
+    return cast(i32) CANVAS_BUFFER_POINTER[968 + 4];
+}
+
+renderChar :: (fontSheet: FontSheet, char: u8, xPos: i32, yPos: i32) {
+    for y: 0 .. fontSheet.charHeight {
+        for x: 0 .. fontSheet.charWidth {
+            setPixel(xPos + x, yPos + y, getFontPixel(fontSheet, char, x, y));
+        }
+    }
+}
+
+getFontPixel :: (fontSheet: FontSheet, char: u8, x: i32, y: i32) -> Colour {
+    // Need to subtract the y coord from the sheet height because for some reason
+    // BMP files store images from bottom to top
+    charX := cast(i32, (char - ' ')) % fontSheet.sheetWidth;
+    charY := cast(i32, (char - ' ')) / fontSheet.sheetWidth;
+    fontIdx := (charX * fontSheet.charWidth + x + ((fontSheet.height - 1 - y - (charY * fontSheet.charHeight)) * fontSheet.width)) * 4;
+    fontColourR := fontSheet.image[fontIdx];
+    fontColourG := fontSheet.image[fontIdx + 1];
+    fontColourB := fontSheet.image[fontIdx + 2];
+    fontColourA := fontSheet.image[fontIdx + 3];
+
+    return Colour.{fontColourA, fontColourG, fontColourB, fontColourA};
+}
+
+setPixel :: (x: i32, y: i32, pixel: Colour) {
+    bufferIdx := (y * CANVAS_SIZE + x) * 4;
+    CANVAS_BUFFER_POINTER[bufferIdx + 0] = pixel.r;
+    CANVAS_BUFFER_POINTER[bufferIdx + 1] = 0;
+    CANVAS_BUFFER_POINTER[bufferIdx + 2] = 0;
+    CANVAS_BUFFER_POINTER[bufferIdx + 3] = pixel.a;
+}
+
+main :: () {
+}

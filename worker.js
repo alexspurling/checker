@@ -59,7 +59,7 @@ let canvasImageData;
 
 const loadWasm = async () => {
     console.log("Loading wasm module");
-    wasmModule = await importWasmModule("./checker.wasm");
+    wasmModule = await importWasmModule("./day17canvas.wasm");
     console.log("Loaded wasm module", wasmModule);
 
     // Initialise the Onyx runtime - this is needed to set up heap space and other things
@@ -101,7 +101,10 @@ onmessage = async (e) => {
 let fps = 0;
 let numFrames = 0;
 let lastFpsTime = 0;
-
+let avgRenderTime = 0;
+let totalRenderTime = 0;
+let avgUpdateTime = 0;
+let totalUpdateTime = 0;
 
 function render() {
     // Generate a new checkboard in wasm
@@ -134,19 +137,26 @@ function render() {
     const updateTime = Date.now() - startTime;
 
     // Render the FPS counter
-    renderFPS(ctx);
+    renderFPS(ctx, renderTime, updateTime);
 
     // requestAnimationFrame(render);
     // console.log("Render time", renderTime, "Slice time", sliceTime, "createImageDataTime", createImageDataTime, "setImageDataTime", setImageDataTime, "clearRectTime", clearRectTime, "putImageDataTime", putImageDataTime);
-    console.log("Render time", renderTime, "Update time", updateTime);
+    // console.log("Render time", renderTime, "Update time", updateTime);
 }
 
-function renderFPS(ctx) {
+function renderFPS(ctx, renderTime, updateTime) {
     const curTime = Date.now();
     if (curTime - lastFpsTime >= 1000) {
         lastFpsTime = curTime;
         fps = numFrames;
+        avgRenderTime = totalRenderTime / numFrames;
+        avgUpdateTime = totalUpdateTime / numFrames;
         numFrames = 0;
+        totalRenderTime = 0;
+        totalUpdateTime = 0;
+    } else {
+        totalRenderTime += renderTime;
+        totalUpdateTime += updateTime;
     }
 
     numFrames += 1;
@@ -154,4 +164,6 @@ function renderFPS(ctx) {
     ctx.font = "20px sans";
     ctx.fillStyle = "black";
     ctx.fillText("FPS: " + fps, 20, 40);
+    ctx.fillText("Render time: " + avgRenderTime.toFixed(2), 20, 60);
+    ctx.fillText("Update time: " + avgUpdateTime.toFixed(2), 20, 80);
 }
