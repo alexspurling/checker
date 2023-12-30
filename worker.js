@@ -53,6 +53,7 @@ let bufferPointer;
 let bufferSize;
 let wasmByteMemoryArray;
 let imageDataArray;
+let ctx;
 let canvasElement;
 let canvasImageData;
 
@@ -81,6 +82,8 @@ const loadWasm = async () => {
         bufferPointer,
         bufferPointer + bufferSize
     );
+
+    ctx = canvas.getContext("2d");
 }
 
 
@@ -91,7 +94,7 @@ onmessage = async (e) => {
         postMessage({msg: "loaded"});
     } else if (e.data.msg == "start") {
         render();
-        setInterval(render, 1000);
+        // setInterval(render, 1000);
     } else {
         console.log("Received unknown message", e.data);
     }
@@ -125,13 +128,12 @@ function render() {
     // const canvasElement = document.querySelector("canvas");
 
     // Set up Context and ImageData on the canvas
-    const ctx = canvas.getContext("2d");
     const canvasImageData = ctx.createImageData(
         canvas.width,
         canvas.height
     );
     canvasImageData.data.set(imageDataArray);
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.putImageData(canvasImageData, 0, 0);
 
     const updateTime = Date.now() - startTime;
@@ -139,7 +141,7 @@ function render() {
     // Render the FPS counter
     renderFPS(ctx, renderTime, updateTime);
 
-    // requestAnimationFrame(render);
+    requestAnimationFrame(render);
     // console.log("Render time", renderTime, "Slice time", sliceTime, "createImageDataTime", createImageDataTime, "setImageDataTime", setImageDataTime, "clearRectTime", clearRectTime, "putImageDataTime", putImageDataTime);
     // console.log("Render time", renderTime, "Update time", updateTime);
 }
@@ -166,4 +168,5 @@ function renderFPS(ctx, renderTime, updateTime) {
     ctx.fillText("FPS: " + fps, 20, 40);
     ctx.fillText("Render time: " + avgRenderTime.toFixed(2), 20, 60);
     ctx.fillText("Update time: " + avgUpdateTime.toFixed(2), 20, 80);
+    ctx.fillText("Frame num: " + numFrames, 20, 100);
 }
