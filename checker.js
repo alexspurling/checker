@@ -17,3 +17,7 @@ window.onload = function () {
     worker.postMessage({msg: "load", params: [offscreenCanvas]}, [offscreenCanvas]);
     // worker.postMessage({msg: "load", params: []});
 }
+
+function solve() {
+    worker.postMessage({msg: "solve"});
+}

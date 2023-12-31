@@ -60,7 +60,7 @@ let canvasImageData;
 
 const loadWasm = async () => {
     console.log("Loading wasm module");
-    wasmModule = await importWasmModule("./day17canvas.wasm");
+    wasmModule = await importWasmModule("./day17.wasm");
     console.log("Loaded wasm module", wasmModule);
 
     // Initialise the Onyx runtime - this is needed to set up heap space and other things
@@ -101,6 +101,8 @@ onmessage = async (e) => {
     } else if (e.data.msg == "start") {
         render();
         // setInterval(render, 1000);
+    } else if (e.data.msg == "solve") {
+        solvewasm();
     } else {
         console.log("Received unknown message", e.data);
     }
@@ -128,22 +130,8 @@ function render() {
         bufferPointer + bufferSize
     );
 
-    // console.log(wasmByteMemoryArray);
-
-    // Set up Context and ImageData on the canvas
-    // const canvasImageData = ctx.createImageData(
-    //     canvas.width,
-    //     canvas.height
-    // );
     canvasImageData.data.set(imageDataArray);
-    // ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // ctx.putImageData(canvasImageData, 0, 0);
-
-    // for (var i = 0; i < bufferSize; i++) {
-    //     canvasImageData.data[i] = wasmByteMemoryArray[bufferPointer + i];
-    // }
     ctx.putImageData(canvasImageData, 0, 0);
-    // console.log(canvasImageData.data);
 
     const updateTime = Date.now() - startTime;
 
@@ -151,8 +139,6 @@ function render() {
     renderFPS(ctx, renderTime, updateTime);
 
     requestAnimationFrame(render);
-    // console.log("Render time", renderTime, "Slice time", sliceTime, "createImageDataTime", createImageDataTime, "setImageDataTime", setImageDataTime, "clearRectTime", clearRectTime, "putImageDataTime", putImageDataTime);
-    // console.log("Render time", renderTime, "Update time", updateTime);
 }
 
 function renderFPS(ctx, renderTime, updateTime) {
@@ -175,9 +161,16 @@ function renderFPS(ctx, renderTime, updateTime) {
 
     ctx.font = "20px sans";
     ctx.fillStyle = "black";
-    ctx.fillText("Using .slice()", 20, 20);
     ctx.fillText("FPS: " + fps, 20, 40);
     ctx.fillText("Render time: " + avgRenderTime.toFixed(2), 20, 60);
     ctx.fillText("Update time: " + avgUpdateTime.toFixed(2), 20, 80);
     ctx.fillText("Frame num: " + numFrames, 20, 100);
+}
+
+
+function solvewasm() {
+    let startTime = Date.now();
+    let ret = exports.solve();
+    const solveTime = Date.now() - startTime;
+    console.log("Solve time:", solveTime, "ret", ret);
 }

@@ -1,3 +1,5 @@
+package canvas
+
 use core {println, printf}
 use core.math
 
@@ -116,7 +118,4 @@ setPixel :: (x: i32, y: i32, pixel: Colour) {
     CANVAS_BUFFER_POINTER[bufferIdx + 1] = 0;
     CANVAS_BUFFER_POINTER[bufferIdx + 2] = 0;
     CANVAS_BUFFER_POINTER[bufferIdx + 3] = pixel.a;
-}
-
-main :: () {
 }

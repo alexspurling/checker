@@ -1,0 +1,25 @@
+use core {println, printf}
+use core.random
+
+#load "canvas.onyx";
+
+grid: [100] [100] i32;
+
+#export "solve" solve
+solve :: () -> &str {
+    for i: 0 .. 5000 {
+        for y: 0 .. 100 {
+            for x: 0 .. 100 {
+                grid[y][x] = random.int() % 10;
+            }
+        }
+    }
+    ret := "Hello";
+    return &ret;
+}
+
+main :: () {
+    // Try to solve the puzzle
+    // When render is called, return the state of the solution as an image
+    // Handle special case e.g. when button is pressed
+}
