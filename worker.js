@@ -31,11 +31,19 @@ const onyx_get_str = (str) => {
     return onyx_decode_text(strptr, strlen);
 }
 
-const importWasmModule = async (wasmModuleUrl) => {
+const onyx_kill_thread = (o) => {
+    console.log("Render worker kill thread", o);
+}
+
+const importWasmModule = async (memory, wasmModuleUrl) => {
     let importObject = {
         host: {
             print_str: onyx_print_str,
-            time: Date.now
+            time: Date.now,
+            kill_thread: onyx_kill_thread
+        },
+        onyx: {
+            memory: memory
         }
     };
 
@@ -58,9 +66,9 @@ let canvasElement;
 let canvasImageData;
 
 
-const loadWasm = async () => {
+const loadWasm = async (memory) => {
     console.log("Loading wasm module");
-    wasmModule = await importWasmModule("./day17.wasm");
+    wasmModule = await importWasmModule(memory, "./day17.wasm");
     console.log("Loaded wasm module", wasmModule);
 
     // Initialise the Onyx runtime - this is needed to set up heap space and other things
@@ -95,14 +103,14 @@ const loadWasm = async () => {
 
 onmessage = async (e) => {
     if (e.data.msg == "load") {
-        loadCanvas(e.data.params[0]);
-        await loadWasm();
+        let offscreenCanvas = e.data.params[0];
+        let memory = e.data.params[1];
+        loadCanvas(offscreenCanvas);
+        await loadWasm(memory);
         postMessage({msg: "loaded"});
     } else if (e.data.msg == "start") {
         render();
         // setInterval(render, 1000);
-    } else if (e.data.msg == "solve") {
-        solvewasm();
     } else {
         console.log("Received unknown message", e.data);
     }
@@ -165,12 +173,4 @@ function renderFPS(ctx, renderTime, updateTime) {
     ctx.fillText("Render time: " + avgRenderTime.toFixed(2), 20, 60);
     ctx.fillText("Update time: " + avgUpdateTime.toFixed(2), 20, 80);
     ctx.fillText("Frame num: " + numFrames, 20, 100);
-}
-
-
-function solvewasm() {
-    let startTime = Date.now();
-    let ret = exports.solve();
-    const solveTime = Date.now() - startTime;
-    console.log("Solve time:", solveTime, "ret", ret);
 }

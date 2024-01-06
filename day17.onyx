@@ -1,19 +1,25 @@
 use core {println, printf}
 use core.random
 
-#load "canvas.onyx";
-
-grid: [100] [100] i32;
+#load "./canvas.onyx";
 
 #export "solve" solve
 solve :: () -> &str {
-    for i: 0 .. 5000 {
+    // for i: 0 .. 5000 {
+    //     for y: 0 .. 100 {
+    //         for x: 0 .. 100 {
+    //             // grid[y][x] = random.int() % 10;
+    //         }
+    //     }
+    // }
+
+    // for i: 0 .. 100 {
         for y: 0 .. 100 {
             for x: 0 .. 100 {
                 grid[y][x] = random.int() % 10;
             }
         }
-    }
+    // }
     ret := "Hello";
     return &ret;
 }
