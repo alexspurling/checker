@@ -125,6 +125,14 @@ renderArrow :: (xPos: i32, yPos: i32, direction: Direction, colour: Colour) {
     }
 }
 
+drawRect :: (xPos: i32, yPos: i32, width: i32, height: i32, colour: Colour) {
+    for y: 0 .. height {
+        for x: 0 .. width {
+            setPixel(xPos + x, yPos + y, colour);
+        }
+    }
+}
+
 add :: (originalPixel: Colour, newPixel: Colour) -> Colour {
     invAlpha := 255 - newPixel.a;
     combinedR := (originalPixel.r * invAlpha + newPixel.r * newPixel.a) / 255;
