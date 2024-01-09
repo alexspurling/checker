@@ -36,6 +36,10 @@ window.onload = function () {
     };
 }
 
+function step1() {
+    worker2.postMessage({msg: "step"});
+}
+
 function solve() {
     worker2.postMessage({msg: "solve"});
 }

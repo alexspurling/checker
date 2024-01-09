@@ -1,5 +1,6 @@
 use core {printf}
 use core.math
+use core.intrinsics.wasm {memory_fill}
 
 CANVAS_SIZE :: 800;
 CANVAS_BUFFER_SIZE :: CANVAS_SIZE * CANVAS_SIZE * 4; // 4 bytes per pixel
@@ -58,15 +59,15 @@ Colour :: struct {
 // `abcdefghijklmnopqrstuvwxyz{|}~
 
 
-renderChar :: (char: u8, xPos: i32, yPos: i32) {
+renderChar :: (char: u8, xPos: i32, yPos: i32, colour: Colour) {
     for y: 0 .. FONT_SHEET.charHeight {
         for x: 0 .. FONT_SHEET.charWidth {
-            setPixel(xPos + x, yPos + y, getFontPixel(char, x, y));
+            addPixel(xPos + x, yPos + y, getFontPixel(char, x, y, colour));
         }
     }
 }
 
-getFontPixel :: (char: u8, x: i32, y: i32) -> Colour {
+getFontPixel :: (char: u8, x: i32, y: i32, colour: Colour) -> Colour {
     // Need to subtract the y coord from the sheet height because for some reason
     // BMP files store images from bottom to top
     charX := cast(i32, (char - ' ')) % FONT_SHEET.sheetWidth;
@@ -80,22 +81,83 @@ getFontPixel :: (char: u8, x: i32, y: i32) -> Colour {
     //     printf("Uh how somehow we got the wrong index: {}, {}, {}, {}, {}, {}, {}, {}\n",
     //     fontIdx, x, y, FONT_SHEET.sheetWidth, FONT_SHEET.sheetHeight, FONT_SHEET.charHeight, FONT_SHEET.width, FONT_SHEET.height);
     // }
-    fontColourR := FONT_IMAGE[fontIdx];
-    fontColourG := FONT_IMAGE[fontIdx + 1];
-    fontColourB := FONT_IMAGE[fontIdx + 2];
+
+    // We only really need the alpha channel because we assume the font pixels are all white
     fontColourA := FONT_IMAGE[fontIdx + 3];
 
-    return Colour.{fontColourA, fontColourG, fontColourB, fontColourA};
+    return Colour.{colour.r, colour.g, colour.b, fontColourA};
+}
+
+renderBox :: (xPos: i32, yPos: i32, width: i32, height: i32, colour: Colour) {
+    // Top and bottom
+    renderLineX(xPos, yPos,              width, colour);
+    renderLineX(xPos, yPos + height - 1, width, colour);
+    // Left and right
+    renderLineY(xPos,             yPos, height, colour);
+    renderLineY(xPos + width - 1, yPos, height, colour);
+}
+
+renderLineX :: (xPos: i32, yPos: i32, width: i32, colour: Colour) {
+    for x: 0 .. width {
+        setPixel(xPos + x, yPos, colour);
+    }
+}
+renderLineY :: (xPos: i32, yPos: i32, height: i32, colour: Colour) {
+    for y: 0 .. height {
+        setPixel(xPos, yPos + y, colour);
+    }
+}
+
+renderArrow :: (xPos: i32, yPos: i32, direction: Direction, colour: Colour) {
+    switch direction {
+        case Direction.NORTH {
+            renderChar('^', xPos, yPos - 7, colour);
+        }
+        case Direction.SOUTH {
+            renderChar('v', xPos, yPos - 8, colour);
+        }
+        case Direction.EAST {
+            renderChar('>', xPos + 1, yPos - 9, colour);
+        }
+        case Direction.WEST {
+            renderChar('<', xPos, yPos - 9, colour);
+        }
+    }
+}
+
+add :: (originalPixel: Colour, newPixel: Colour) -> Colour {
+    invAlpha := 255 - newPixel.a;
+    combinedR := (originalPixel.r * invAlpha + newPixel.r * newPixel.a) / 255;
+    combinedG := (originalPixel.g * invAlpha + newPixel.g * newPixel.a) / 255;
+    combinedB := (originalPixel.b * invAlpha + newPixel.b * newPixel.a) / 255;
+    combinedA := math.max(originalPixel.a, newPixel.a);
+    return Colour.{combinedR, combinedG, combinedB, combinedA};
+}
+
+addPixel :: (x: i32, y: i32, pixel: Colour) {
+    // Combine the given colour with the colour already in the buffer
+    bufferIdx := (y * CANVAS_SIZE + x) * 4;
+    existingColour := Colour.{
+        CANVAS_BUFFER_POINTER[bufferIdx + 0],
+        CANVAS_BUFFER_POINTER[bufferIdx + 1],
+        CANVAS_BUFFER_POINTER[bufferIdx + 2],
+        CANVAS_BUFFER_POINTER[bufferIdx + 3]
+    };
+    setPixel(x, y, add(existingColour, pixel));
 }
 
 setPixel :: (x: i32, y: i32, pixel: Colour) {
     bufferIdx := (y * CANVAS_SIZE + x) * 4;
     if bufferIdx >= 0 && bufferIdx <= CANVAS_BUFFER_SIZE - 4 {
         CANVAS_BUFFER_POINTER[bufferIdx + 0] = pixel.r;
-        CANVAS_BUFFER_POINTER[bufferIdx + 1] = 0;
-        CANVAS_BUFFER_POINTER[bufferIdx + 2] = 0;
+        CANVAS_BUFFER_POINTER[bufferIdx + 1] = pixel.g;
+        CANVAS_BUFFER_POINTER[bufferIdx + 2] = pixel.b;
         CANVAS_BUFFER_POINTER[bufferIdx + 3] = pixel.a;
     } else {
         printf("Setting pixel out of bounds: x: {}, y: {}, idx: {}\n", x, y, bufferIdx);
     }
+}
+
+clear :: () {
+    memory_fill(&CANVAS_BUFFER_POINTER, 0, CANVAS_BUFFER_SIZE);
 }

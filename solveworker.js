@@ -80,17 +80,11 @@ onmessage = async (e) => {
         let memory = e.data.params[0];
         await loadWasm(memory);
         postMessage({msg: "loaded"});
+    } else if (e.data.msg == "step") {
+        exports.step();
     } else if (e.data.msg == "solve") {
-        solvewasm();
+        exports.solve();
     } else {
         console.log("Received unknown message", e.data);
     }
 };
-
-
-function solvewasm() {
-    let startTime = Date.now();
-    let ret = exports.step();
-    const solveTime = Date.now() - startTime;
-    console.log("Solve time:", solveTime, "ret", ret);
-}

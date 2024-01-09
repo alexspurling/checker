@@ -15,6 +15,7 @@ use strings {toStr}
 use core {println, printf}
 use core.heap
 use core.hash
+use core.intrinsics.atomics {__atomic_wait, __atomic_notify, __atomic_cmpxchg, __atomic_store}
 
 
 Node :: struct {
@@ -237,21 +238,37 @@ distances : Map(Pos, i32);
 visited : Set(CrucibleState);
 prev : Map(Pos, Pos);
 queue : heap.Heap(CrucibleState);
+
+// Variables used for visualisation
+lastCrucibleState : CrucibleState;
+recentlyUpdatedDistances: [..] Pos;
+
 numSteps := 0;
 
 
-#export "step" step
-step :: () {
+mutex := 0;
+lock :: () {
+    // Wait until the mutex is 0 as that means it's safe to render or update the game state
+    // If it is 0 then set the value to 1 and exit the loop
+    while __atomic_cmpxchg(&mutex, 0, 1) != 0 {
+        __atomic_wait(&mutex, 1);
+    }
+}
 
-    printf("Stepping through step {}\n", numSteps);
+unlock :: () {
+    // Set the mutex back to 0 and notify any threads that are waiting
+    __atomic_store(&mutex, 0);
+    __atomic_notify(&mutex);
+}
 
+setup :: () {
     if numSteps == 0 {
+        lock();
+
         // Set the params
         city = string.split(exampleInput, '\n');
         startPos = Pos.{0, 0};
         targetPos = Pos.{city[0].length - 1, city.length - 1};
-
-        printf("Set params: {}\n", city.count);
 
         // Initialise the search
         distances = map.make(Pos, i32);
@@ -261,19 +278,33 @@ step :: () {
         queue = heap.make(CrucibleState, (p1, p2, [&distances]) => compareStatesByDistance(p1, p2, distances));
         queue << CrucibleState.{startPos, Direction.NORTH, 1}; // Pretend we arrived at 0,0 going north because that will force a "direction change"
 
-        printf("Created initial queue: {}\n", queue.data.count);
+        unlock();
     }
+}
 
-    printf("Queue size is: {}\n", queue.data.count);
+#export "solve" solve
+solve :: () {
+    setup();
+    while !array.empty(queue.data) {
+        getShortestPathStep();
+    }
+    numSteps += 1;
+}
+
+#export "step" step
+step :: () {
+    setup();
     if !array.empty(queue.data) {
         getShortestPathStep();
     }
-
     numSteps += 1;
 }
 
 
 getShortestPathStep :: () {
+    lock();
+    recentlyUpdatedDistances = array.make(Pos);
+
     curState := heap.remove_top(&queue);
     curDirection := curState.direction;
     curDistance := map.get(&distances, curState.pos)->value_or(MAX_INT);
@@ -301,39 +332,89 @@ getShortestPathStep :: () {
                         printf("Recording distance to position: {}, distance: {}\n", neighbour, neighbourDistance);
                         map.put(&distances, neighbour, neighbourDistance);
                         map.put(&prev, neighbour, neighbourState.pos);
+                        recentlyUpdatedDistances << neighbour;
                     }
                     printf("Adding neighbour state to queue: {}. (queue size: {})\n", neighbourState, queue.data.count);
                     queue << neighbourState;
                 }
             }
         }
+        unlock();
     }
 
+    lastCrucibleState = curState;
+
     set.insert(&visited, curState);
+}
+
+renderCell :: (posX: i32, posY: i32, distance: i32, colour: Colour) {
+    if distance < 10 {
+        renderChar('0', posX, posY, colour);
+        renderChar(cast(u8) ('0' + distance), posX + 10, posY, colour);
+    } elseif distance < 100 {
+        renderChar(cast(u8) ('0' + distance / 10), posX, posY, colour);
+        renderChar(cast(u8) ('0' + distance % 10), posX + 10, posY, colour);
+    } else {
+        renderChar('X', posX, posY, colour);
+        renderChar('X', posX + 10, posY, colour);
+    }
 }
 
 #export "render" render
 render :: (time: i64) -> i32 {
 
+    lock();
+
+    // Clear the canvas
+    clear();
+
+    fontColour := Colour.{255, 50, 50, 0};
+    recentlyUpdatedColour := Colour.{0, 50, 255, 0};
+
     if numSteps > 0 {
+        // Render all calculated distances
         for y: 0 .. city.count {
             for x: 0 .. city[0].count {
-                distance := map.get(&distances, Pos.{x, y})->value_or(MAX_INT);
+                pos := Pos.{x, y};
+                distance := map.get(&distances, pos)->value_or(MAX_INT);
 
-                posX := 100 + x * 10;
-                posY := 100 + y * 17;
+                posX := 120 + x * 30;
+                posY := 120 + y * 25;
 
-                if distance < 10 {
-                    charToRender := cast(u8) ('0' + distance);
-                    renderChar(charToRender, posX, posY);
+                if array.contains(recentlyUpdatedDistances, pos) {
+                    renderCell(posX, posY, distance, recentlyUpdatedColour);
                 } else {
-                    renderChar('X', posX, posY);
+                    renderCell(posX, posY, distance, fontColour);
                 }
             }
         }
+
+        // Render most recent state
+
+        posX := 120 + lastCrucibleState.pos.x * 30;
+        posY := 120 + lastCrucibleState.pos.y * 25;
+        // Draw box
+        renderBox(posX, posY, 20, 17, Colour.{50, 200, 0, 255});
+        // Draw arrow
+        switch lastCrucibleState.direction {
+            case Direction.NORTH {
+                renderArrow(posX + 5, posY + 21, lastCrucibleState.direction, Colour.{50, 200, 0, 100});
+            }
+            case Direction.SOUTH {
+                renderArrow(posX + 5, posY - 5, lastCrucibleState.direction, Colour.{50, 200, 0, 100});
+            }
+            case Direction.EAST {
+                renderArrow(posX - 8, posY + 8, lastCrucibleState.direction, Colour.{50, 200, 0, 100});
+            }
+            case Direction.WEST {
+                renderArrow(posX + 18, posY + 8, lastCrucibleState.direction, Colour.{50, 200, 0, 100});
+            }
+        }
+
     }
 
-    return cast(i32) CANVAS_BUFFER_POINTER[968 + 4];
+    unlock();
+    return 0;
 }
 
 
