@@ -1,0 +1,27 @@
+package common
+
+use core.hash {
+    corehash :: hash
+}
+
+
+progress :: (p: f64) -> void  #foreign "host" "progress" ---
+
+
+cmp :: (num1: $T, num2: T) -> i32 {
+    return 0 if num1 == num2 else (-1) if num1 < num2 else 1;
+}
+
+
+Pos :: struct {
+    x: i32;
+    y: i32;
+
+    hash :: (p: Pos) -> i32 {
+        // This is the algorithm Java uses
+        return 31 * 31 * corehash(p.x) * corehash(p.y);
+    }
+}
+#operator == (p1: Pos, p2: Pos) -> bool {
+    return p1.x == p2.x && p1.y == p2.y;
+}

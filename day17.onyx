@@ -1,31 +1,342 @@
+#load "canvas.onyx"
+#load "common.onyx"
+#load "strings.onyx"
+
+
+use core
+use core.iter
+use core.map
+use core.string
+use core.array
+use core.set
+use core.conv {parse_int}
+use common {Pos, cmp}
+use strings {toStr}
 use core {println, printf}
-use core.random
+use core.heap
+use core.hash
 
-#load "./canvas.onyx";
 
-#export "solve" solve
-solve :: () -> &str {
-    // for i: 0 .. 5000 {
-    //     for y: 0 .. 100 {
-    //         for x: 0 .. 100 {
-    //             // grid[y][x] = random.int() % 10;
-    //         }
-    //     }
-    // }
-
-    // for i: 0 .. 100 {
-        for y: 0 .. 100 {
-            for x: 0 .. 100 {
-                grid[y][x] = random.int() % 10;
-            }
-        }
-    // }
-    ret := "Hello";
-    return &ret;
+Node :: struct {
+    pos: Pos;
+    distance: i32;
+}
+#operator == (n1: Node, n2: Node) -> bool {
+    return n1.pos == n2.pos && n1.distance == n2.distance;
+}
+#operator < (n1: Node, n2: Node) -> bool {
+    return n1.distance < n2.distance;
 }
 
+MAX_INT :: 2000000000;
+
+
+getNeighbours :: (p: Pos) -> [..] Pos {
+    neighbours := array.make(Pos, allocator=context.temp_allocator); // Todo check if we need to use the temp allocator here
+
+    neighbours << Pos.{p.x - 1, p.y};
+    neighbours << Pos.{p.x + 1, p.y};
+    neighbours << Pos.{p.x, p.y - 1};
+    neighbours << Pos.{p.x, p.y + 1};
+
+    return neighbours;
+}
+
+
+getCityCost :: (city: [] str, pos: Pos) -> i32 {
+    costChar := city[pos.y][pos.x];
+    costInt := cast(i32) costChar;
+    return costInt - 48;
+}
+
+getPathFromPrevChain :: (city: [] str, targetPos: Pos, prev: &Map(Pos, Pos)) -> ([] Pos, i32) {
+    path := array.make(Pos);
+    pathCost := 0;
+    u := targetPos;
+    while map.has(prev, u) {
+        path << u;
+        pathCost += getCityCost(city, u);
+        u = map.get(prev, u)->unwrap();
+    }
+    if !array.empty(path) {
+        // Add the start node to the path
+        path << u;
+        pathCost += getCityCost(city, u);
+    }
+
+    // Reverse the path
+    array.reverse(path);
+
+    return path, pathCost;
+}
+
+Direction :: enum {
+    NORTH; SOUTH; EAST; WEST; UNKNOWN;
+}
+#inject
+Direction.hash :: (d: Direction) -> u32 {
+    return hash.hash(cast(u32) d);
+}
+#overload
+hash.hash :: (d: Direction) -> u32 {
+    return hash.hash(cast(u32) d);
+}
+CrucibleState :: struct {
+    pos: Pos;
+    direction: Direction;
+    numSteps: i32;
+}
+#operator == (p1: CrucibleState, p2: CrucibleState) -> bool {
+    return p1.pos == p2.pos && p1.direction == p2.direction && p1.numSteps == p2.numSteps;
+}
+#inject
+CrucibleState.hash :: (p: CrucibleState) -> u32 {
+    return 31 * hash.hash(p.pos) * hash.hash(p.direction) * hash.hash(p.numSteps);
+}
+#overload
+hash.hash :: (p: CrucibleState) -> u32 {
+    return 31 * hash.hash(p.pos) * hash.hash(p.direction) * hash.hash(p.numSteps);
+}
+
+getDirection :: (curPos: Pos, nextPos: Pos) -> Direction {
+    if curPos.y > nextPos.y {
+        return Direction.NORTH;
+    }
+    if curPos.y < nextPos.y {
+        return Direction.SOUTH;
+    }
+    if curPos.x < nextPos.x {
+        return Direction.EAST;
+    }
+    return Direction.WEST;
+}
+
+getShortestPath :: (city: [] str, startPos: Pos, targetPos: Pos) -> i32 {
+
+    distances := map.make(Pos, i32);
+    visited := set.make(CrucibleState);
+    prev := map.make(Pos, Pos);
+
+    map.put(&distances, startPos, getCityCost(city, startPos));
+    queue := heap.make(CrucibleState, (p1, p2, [&distances]) => compareStatesByDistance(p1, p2, distances));
+
+    queue << CrucibleState.{startPos, Direction.NORTH, 1}; // Pretend we arrived at 0,0 going north because that will force a "direction change"
+
+    while !array.empty(queue.data) {
+        curState := heap.remove_top(&queue);
+        curDirection := curState.direction;
+        curDistance := map.get(&distances, curState.pos)->value_or(MAX_INT);
+
+        printf("Cur state: {}, distance: {}\n", curState, curDistance);
+
+        neighbours := getNeighbours(curState.pos);
+        for neighbour: neighbours {
+            neighbourDirection := getDirection(curState.pos, neighbour);
+            neighbourState: CrucibleState;
+            if neighbourDirection != curDirection {
+                neighbourState = CrucibleState.{neighbour, neighbourDirection, 1};
+            } else {
+                neighbourState = CrucibleState.{neighbour, neighbourDirection, curState.numSteps + 1};
+            }
+            if (neighbour.x >= 0 && neighbour.y >= 0 && neighbour.x < city[0].length && neighbour.y < city.length) {
+                if set.has(&visited, neighbourState) {
+                    printf("Already visited: {}\n", neighbourState);
+                } else {
+                    if neighbourState.numSteps <= 3 {
+                        blockCost := getCityCost(city, neighbour);
+                        neighbourDistance := curDistance + blockCost;
+
+                        if neighbourDistance < map.get(&distances, neighbour)->value_or(MAX_INT) {
+                            printf("Recording distance to position: {}, distance: {}\n", neighbour, neighbourDistance);
+                            map.put(&distances, neighbour, neighbourDistance);
+                            map.put(&prev, neighbour, neighbourState.pos);
+                        }
+                        printf("Adding neighbour state to queue: {}. (queue size: {})\n", neighbourState, queue.data.count);
+                        queue << neighbourState;
+                    }
+                }
+            }
+        }
+
+        set.insert(&visited, curState);
+
+        println("Cur distances :");
+
+        for y: 0 .. city.count {
+            for x: 0 .. city[0].count {
+                distance := map.get(&distances, Pos.{x ,y})->value_or(MAX_INT);
+                if distance < 10 {
+                    printf("0{} ", distance);
+                } elseif distance < 100 {
+                    printf("{} ", distance);
+                } else {
+                    printf("XX ", distance);
+                }
+            }
+            println("");
+        }
+    }
+
+    path, pathCost := getPathFromPrevChain(city, targetPos, &prev);
+
+    printf("Path len: {}, cost: {}, path: {}\n", path.length, pathCost, path);
+
+    for p: path {
+        printf("({}, {}): {}\n", p.x, p.y, city[p.y][p.x]);
+    }
+
+    return pathCost;
+}
+
+compareStatesByDistance :: (p1: CrucibleState, p2: CrucibleState, distances: &Map(Pos, i32)) -> i32 {
+    return cmp(map.get(distances, p1.pos)->value_or(MAX_INT), map.get(distances, p2.pos)->value_or(MAX_INT));
+}
+
+
+getPathCost :: (city: [] str, path: [] Pos) -> i32 {
+    return iter.as_iter(path)
+        |> iter.map((p, [city]) => getCityCost(city, *p))
+        |> iter.fold(0, (n, a) => a + n);
+}
+
+
+solve_part_1 :: () -> str {
+    city := string.split(exampleInput, '\n');
+    shortestPath := getShortestPath(city, Pos.{0, 0}, Pos.{city[0].length - 1, city.length - 1});
+
+    printf("Shortest path: {}\n", shortestPath);
+
+    return toStr(shortestPath);
+}
+
+
+solve_part_2 :: () -> str {
+    return "";
+}
+
+
+exampleInput := """2413432311323
+3215453535623
+3255245654254
+3446585845452
+4546657867536
+1438598798454
+4457876987766
+3637877979653
+4654967986887
+4564679986453
+1224686865563
+2546548887735
+4322674655533""";
+
+
+city: [] str;
+startPos: Pos;
+targetPos: Pos;
+distances : Map(Pos, i32);
+visited : Set(CrucibleState);
+prev : Map(Pos, Pos);
+queue : heap.Heap(CrucibleState);
+numSteps := 0;
+
+
+#export "step" step
+step :: () {
+
+    printf("Stepping through step {}\n", numSteps);
+
+    if numSteps == 0 {
+        // Set the params
+        city = string.split(exampleInput, '\n');
+        startPos = Pos.{0, 0};
+        targetPos = Pos.{city[0].length - 1, city.length - 1};
+
+        printf("Set params: {}\n", city.count);
+
+        // Initialise the search
+        distances = map.make(Pos, i32);
+        visited = set.make(CrucibleState);
+        prev = map.make(Pos, Pos);
+        map.put(&distances, startPos, getCityCost(city, startPos));
+        queue = heap.make(CrucibleState, (p1, p2, [&distances]) => compareStatesByDistance(p1, p2, distances));
+        queue << CrucibleState.{startPos, Direction.NORTH, 1}; // Pretend we arrived at 0,0 going north because that will force a "direction change"
+
+        printf("Created initial queue: {}\n", queue.data.count);
+    }
+
+    printf("Queue size is: {}\n", queue.data.count);
+    if !array.empty(queue.data) {
+        getShortestPathStep();
+    }
+
+    numSteps += 1;
+}
+
+
+getShortestPathStep :: () {
+    curState := heap.remove_top(&queue);
+    curDirection := curState.direction;
+    curDistance := map.get(&distances, curState.pos)->value_or(MAX_INT);
+
+    printf("Cur state: {}, distance: {}\n", curState, curDistance);
+
+    neighbours := getNeighbours(curState.pos);
+    for neighbour: neighbours {
+        neighbourDirection := getDirection(curState.pos, neighbour);
+        neighbourState: CrucibleState;
+        if neighbourDirection != curDirection {
+            neighbourState = CrucibleState.{neighbour, neighbourDirection, 1};
+        } else {
+            neighbourState = CrucibleState.{neighbour, neighbourDirection, curState.numSteps + 1};
+        }
+        if (neighbour.x >= 0 && neighbour.y >= 0 && neighbour.x < city[0].length && neighbour.y < city.length) {
+            if set.has(&visited, neighbourState) {
+                printf("Already visited: {}\n", neighbourState);
+            } else {
+                if neighbourState.numSteps <= 3 {
+                    blockCost := getCityCost(city, neighbour);
+                    neighbourDistance := curDistance + blockCost;
+
+                    if neighbourDistance < map.get(&distances, neighbour)->value_or(MAX_INT) {
+                        printf("Recording distance to position: {}, distance: {}\n", neighbour, neighbourDistance);
+                        map.put(&distances, neighbour, neighbourDistance);
+                        map.put(&prev, neighbour, neighbourState.pos);
+                    }
+                    printf("Adding neighbour state to queue: {}. (queue size: {})\n", neighbourState, queue.data.count);
+                    queue << neighbourState;
+                }
+            }
+        }
+    }
+
+    set.insert(&visited, curState);
+}
+
+#export "render" render
+render :: (time: i64) -> i32 {
+
+    if numSteps > 0 {
+        for y: 0 .. city.count {
+            for x: 0 .. city[0].count {
+                distance := map.get(&distances, Pos.{x, y})->value_or(MAX_INT);
+
+                posX := 100 + x * 10;
+                posY := 100 + y * 17;
+
+                if distance < 10 {
+                    charToRender := cast(u8) ('0' + distance);
+                    renderChar(charToRender, posX, posY);
+                } else {
+                    renderChar('X', posX, posY);
+                }
+            }
+        }
+    }
+
+    return cast(i32) CANVAS_BUFFER_POINTER[968 + 4];
+}
+
+
 main :: () {
-    // Try to solve the puzzle
-    // When render is called, return the state of the solution as an image
-    // Handle special case e.g. when button is pressed
+
 }

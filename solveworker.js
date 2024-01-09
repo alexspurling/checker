@@ -70,7 +70,6 @@ const loadWasm = async (memory) => {
     console.log("Got buffer pointer and size", bufferPointer, bufferSize);
 
     exports = wasmInstance.exports;
-    console.log("Got exports", exports);
     memory = exports.memory;
     wasmByteMemoryArray = new Uint8Array(memory.buffer);
 }
@@ -91,7 +90,7 @@ onmessage = async (e) => {
 
 function solvewasm() {
     let startTime = Date.now();
-    let ret = exports.solve();
+    let ret = exports.step();
     const solveTime = Date.now() - startTime;
     console.log("Solve time:", solveTime, "ret", ret);
 }

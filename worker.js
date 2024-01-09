@@ -82,7 +82,6 @@ const loadWasm = async (memory) => {
     console.log("Got buffer pointer and size", bufferPointer, bufferSize);
 
     exports = wasmInstance.exports;
-    console.log("Got exports", exports);
     memory = exports.memory;
     wasmByteMemoryArray = new Uint8Array(memory.buffer);
 

@@ -1,4 +1,4 @@
-use core {println, printf}
+use core {printf}
 use core.math
 
 CANVAS_SIZE :: 800;
@@ -7,8 +7,6 @@ CANVAS_BUFFER_POINTER: [CANVAS_BUFFER_SIZE] u8;
 
 FONT :: #file_contents "monaco16.bmp"
 FONT_IMAGE :: FONT[cast(u32) FONT[0xA] .. FONT.count]; // The byte at 0xA tells us where the RGB image data begins
-
-grid: [100] [100] i32;
 
 
 FontSheet :: struct {
@@ -59,48 +57,6 @@ Colour :: struct {
 // @ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_
 // `abcdefghijklmnopqrstuvwxyz{|}~
 
-#export "render" render
-render :: (time: i64) -> i32 {
-
-    // foregroundR: u8 = cast(u8)(time % 256);
-    // foregroundG: u8 = cast(u8)((time >> 1) % 256);
-    // foregroundB: u8 = cast(u8)((time >> 2) % 256);
-
-    // backgroundR: u8 = cast(u8)((time >> 3) % 256);
-    // backgroundG: u8 = cast(u8)((time >> 4) % 256);
-    // backgroundB: u8 = cast(u8)((time >> 5) % 256);
-
-    // foreground := Colour.{foregroundR, foregroundG, foregroundB, 255};
-    // background := Colour.{backgroundR, backgroundG, backgroundB, 255};
-
-    // fontSheet := getFontSheet();
-
-    // printf("Sheet: {}\n", fontSheet);
-
-    // printf("Font: {}, {}, {}, {}, {}, {}, {}\n", fontSheet.width, fontSheet.height, fontSheet.charWidth, fontSheet.charHeight, 
-    //     fontSheet.sheetWidth, fontSheet.sheetHeight, FONT.count);
-
-    tileSize := 20;
-
-    for y: 0 .. 46 {
-        for x: 0 .. 78 {
-            posX := 10 + x * 10;
-            posY := 10 + y * 17;
-
-            charToRender := cast(u8) ('0' + grid[y][x]);
-            renderChar(charToRender, posX, posY);
-        }
-    }
-
-    // for y: 0 .. 800 {
-    //     for x: 0 .. 800 {
-    //         setPixel(x, y, Colour.{200, 40, 0, 255});
-    //     }
-    // }
-
-
-    return cast(i32) CANVAS_BUFFER_POINTER[968 + 4];
-}
 
 renderChar :: (char: u8, xPos: i32, yPos: i32) {
     for y: 0 .. FONT_SHEET.charHeight {
@@ -121,7 +77,7 @@ getFontPixel :: (char: u8, x: i32, y: i32) -> Colour {
     // if (fontCount != 65280) {
     //     printf("Image is wrong size: {}\n", fontCount);
     // } elseif (fontIdx < 0 || fontIdx > fontCount - 4) {
-    //     printf("Uh how somehow we got the wrong index: {}, {}, {}, {}, {}, {}, {}, {}\n", 
+    //     printf("Uh how somehow we got the wrong index: {}, {}, {}, {}, {}, {}, {}, {}\n",
     //     fontIdx, x, y, FONT_SHEET.sheetWidth, FONT_SHEET.sheetHeight, FONT_SHEET.charHeight, FONT_SHEET.width, FONT_SHEET.height);
     // }
     fontColourR := FONT_IMAGE[fontIdx];
